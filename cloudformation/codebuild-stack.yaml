@@ -1,0 +1,108 @@
+--- 
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'This template builds code and store the zipped code to s3'
+Parameters: 
+  BuildName: 
+    Default: 'cicd-lambda-proj7'
+    Description: 'Name of Build Job'
+    Type: String
+  GitRepo: 
+    Default: 'https://git.autodesk.com/t-mishk/CIDC-Lambda-POC'
+    Description: 'Name of the Git Repo'
+    Type: String
+  GroupName: 
+    Default: 'Codebuild lambdapoc Internet Group7'
+    Description: 'Name of the Internet Group.'
+    Type: String
+  Location: 
+    Default: cicd-lambda-poc-bucket
+    Description: 'Name of the S3 Artifact Location'
+    Type: String
+  VpcId: 
+    ConstraintDescription: 'Must be a valid VPC ID that already exists in the account'
+    Default: 'vpc-f242e789'
+    Description: 'Default VPC Id'
+    Type: 'AWS::EC2::VPC::Id'
+  PrivateSubnets: 
+    ConstraintDescription: 'Must be a valid Subnet ID that already exists in the account'
+    Description: 'Valid Application Subnets'
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Default: 'subnet-676a3148, subnet-aa987ae0'
+Resources: 
+  CodeBuildProject7: 
+    Properties: 
+      Artifacts: 
+        Location: !Ref Location
+        Packaging: ZIP
+        Type: S3
+      Environment: 
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/standard:3.0'
+        PrivilegedMode: false
+        Type: LINUX_CONTAINER
+      Name: !Ref BuildName
+      ServiceRole: !Ref CodeBuildRole7
+      Source: 
+        Auth: 
+          Type: OAUTH
+        Location: !Ref GitRepo
+        SourceIdentifier: develop
+        Type: GITHUB_ENTERPRISE
+      TimeoutInMinutes: 10
+#      Triggers:
+#        Webhook: true
+#        FilterGroups:
+#          - - Type: EVENT
+#              Pattern: PUSH
+      VpcConfig: 
+        SecurityGroupIds: [!Ref CodeBuildSecurityGroup7]
+        Subnets: !Ref PrivateSubnets
+        VpcId: !Ref VpcId
+    Type: 'AWS::CodeBuild::Project'
+  CodeBuildSecurityGroup7:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Ref GroupName
+      GroupDescription: CodeBuild SecurityGroup
+      VpcId: !Ref VpcId
+      
+  CodeBuildRole7:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+        Version: 2012-10-17
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildAccess7
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 'logs:*'
+                  - 'ec2:CreateNetworkInterface'
+                  - 'ec2:DescribeNetworkInterfaces'
+                  - 'ec2:DeleteNetworkInterface'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeDhcpOptions'
+                  - 'ec2:DescribeVpcs'
+                  - 'ec2:CreateNetworkInterfacePermission'
+                  - 's3:*'
+                  - 'ecr:GetAuthorizationToken'
+                  - 'ecr:CreateRepository'
+                  - 'ecr:TagResource'
+                  - 'ecr:PutImage'
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:InitiateLayerUpload'
+                  - 'ecr:UploadLayerPart'
+                  - 'ecr:CompleteLayerUpload'
+                Effect: Allow
+                Resource: '*'
+  

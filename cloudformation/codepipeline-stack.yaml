@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template deploys PoC Lambda"
+
+Resources:
+  AppPipeline: 
+    Type: AWS::CodePipeline::Pipeline
+    Properties: 
+      RoleArn: 
+        !Join
+          - ''
+          - - 'arn:aws:iam::'
+            - !Ref 'AWS::AccountId'
+            - ':role/codebpipeline-test-service-role'
+      Name: 'km-test-pipeline4'
+      Stages: 
+        - 
+          Name: Source
+          Actions: 
+            - 
+              Name: SourceAction
+              ActionTypeId: 
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: S3
+              OutputArtifacts: 
+                - 
+                  Name: output
+              Configuration: 
+                S3Bucket: cicd-lambda-poc-bucket
+                S3ObjectKey: cicd-lambda-proj6
+                PollForSourceChanges: true
+              RunOrder: 1
+        - 
+          Name: Deploy
+          Actions: 
+            - 
+              Name: DeployLambda
+              InputArtifacts: 
+                - 
+                  Name: output
+              ActionTypeId: 
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration: 
+                ActionMode: CREATE_UPDATE 
+                StackName: KMlambdaDeploy
+                RoleArn: 
+                  !Join
+                  - ''
+                  - - 'arn:aws:iam::'
+                    - !Ref 'AWS::AccountId'
+                    - ':role/AdskCfnAdministratorAccessExecutionRole'
+                # TemplateConfiguration: output::lambda/config/config_dev.json
+                TemplatePath: output::outputTemplate.yaml
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_AUTO_EXPAND
+              RunOrder: 1
+            
+      ArtifactStore: 
+        Type: S3
+        Location: 'cicd-lambda-poc-bucket'

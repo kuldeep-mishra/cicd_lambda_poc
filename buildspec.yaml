@@ -1,0 +1,13 @@
+version: 0.2
+phases:
+    install:
+        runtime-versions:
+            python: 3.8
+        commands:
+            - aws cloudformation package --template-file cloudformation/template.yaml --s3-bucket cicd-lambda-poc-bucket --output-template-file outputTemplate.yaml
+
+artifacts:
+    type: zip
+    files:
+        - template.yaml
+        - outputTemplate.yaml
